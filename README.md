@@ -171,20 +171,17 @@ On MacBooks with a notch, macOS hides extra menu bar icons behind it when space 
 Accessibility permission is missing or belongs to an older version. The menu bar icon will show **Auto-paste: Off — Fix…**. Remove ClipStack from **Accessibility** with **–**, add it again with **+**, then quit and reopen ClipStack.
 
 **Nothing happens when I press ⌃⌘V.**
-Another app may already use that shortcut. Check that ClipStack is running (menu bar icon), or change the shortcut in `Sources/main.swift` and rebuild.
+Check that ClipStack is running: its icon should be in the menu bar. If it is, another app may already use <kbd>⌃</kbd><kbd>⌘</kbd><kbd>V</kbd>; quit that app and try again.
 
 **“ClipStack can't be opened because Apple cannot check it for malicious software.”**
 See [step 3](#3-open-it-the-first-time).
 
-**Seeing what happens behind the scenes.**
-Run this in Terminal, then use ClipStack:
-```bash
-log stream --predicate 'subsystem == "io.github.udayalakmal.clipstack"'
-```
+**Still stuck?**
+[Open an issue](https://github.com/UdayaLakmal/ClipStack/issues) with your macOS version and Mac model.
 
 ## Build from source
 
-You need the Xcode Command Line Tools (`xcode-select --install`). Xcode itself is not required.
+Prefer to build it yourself? With the Xcode Command Line Tools installed (`xcode-select --install`):
 
 ```bash
 git clone https://github.com/UdayaLakmal/ClipStack.git
@@ -192,56 +189,7 @@ cd ClipStack
 scripts/build.sh install
 ```
 
-That builds a universal `ClipStack.app`, copies it to `~/Applications` and launches it.
-
-| Command | Result |
-|---|---|
-| `scripts/build.sh` | Builds `build/ClipStack.app` (universal) |
-| `scripts/build.sh install` | Builds, installs to `~/Applications`, launches |
-| `scripts/build.sh release` | Builds and zips to `dist/ClipStack-<version>.zip` with a SHA-256 checksum |
-| `scripts/build.sh screenshots` | Regenerates the images in `docs/images` from sample data |
-| `scripts/build.sh icon` | Regenerates `Resources/AppIcon.icns` from `scripts/make-icon.swift` |
-
-Builds are signed ad-hoc, so macOS asks for Accessibility permission again after every rebuild. To avoid that, create a code-signing certificate (Keychain Access → Certificate Assistant → Create a Certificate, type **Code Signing**) and build with `CODESIGN_IDENTITY="Your Certificate Name" scripts/build.sh install`.
-
-### Customising
-
-Everything lives in [`Sources/main.swift`](Sources/main.swift):
-
-| Want to change | Where |
-|---|---|
-| Shortcut | `HotKey(keyCode: kVK_ANSI_V, modifiers: controlKey \| cmdKey)` in `AppDelegate` |
-| Number of items kept | `static let maxItems = 300` in `HistoryStore` |
-| Popup size | `width: 440, height: 480` in `PickerController` |
-| Ignored clipboard types | `ignoredTypes` in `ClipboardMonitor` |
-
-### How it works
-
-```
- ┌──────────────────┐  every 0.4 s   ┌──────────────┐  save   ┌───────────────────┐
- │ ClipboardMonitor │ ─────────────▶ │ HistoryStore │ ──────▶ │ history.json      │
- └──────────────────┘ new text only  └──────────────┘         └───────────────────┘
-                                            │
-  ⌃⌘V ──▶ HotKey (Carbon) ──▶ PickerController (floating panel, search + list)
-                                            │ ↩ / double-click
-                                            ▼
-          copy to NSPasteboard ──▶ refocus previous app ──▶ simulated ⌘V
-```
-
-- **Clipboard watching**: macOS has no "clipboard changed" notification, so ClipStack checks `NSPasteboard.changeCount` a few times a second, which is cheap.
-- **Shortcut**: registered with Carbon's `RegisterEventHotKey`, which works system-wide and needs no permission.
-- **Picker**: a non-activating `NSPanel`, so the app you were typing in stays in front.
-- **Paste**: a synthetic <kbd>⌘</kbd><kbd>V</kbd> via `CGEvent`, which is why Accessibility access is needed.
-
-### Releasing a new version
-
-1. Update [`VERSION`](VERSION) and add an entry to [`CHANGELOG.md`](CHANGELOG.md).
-2. `scripts/build.sh release`
-3. Commit, tag and publish:
-   ```bash
-   git commit -am "Release vX.Y.Z" && git tag -a vX.Y.Z -m "ClipStack X.Y.Z" && git push --follow-tags
-   gh release create vX.Y.Z dist/ClipStack-X.Y.Z.zip dist/ClipStack-X.Y.Z.zip.sha256 --notes-file <notes>
-   ```
+Developer notes, customisation and architecture are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap
 
