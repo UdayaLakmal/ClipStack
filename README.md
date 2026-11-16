@@ -26,8 +26,6 @@
 
 MacClipHistory is a free, open-source **clipboard manager for Mac** that remembers everything you copy, so you can find it and paste it again later. It lives in the menu bar, opens with one shortcut, and pastes straight into the app you're using. If you've been looking for **Windows Win+V clipboard history on a Mac**, a simple **copy-paste history tool for macOS**, or a lightweight alternative to bigger clipboard apps, this is it.
 
-<sub>Formerly called **ClipStack**. Old links redirect here.</sub>
-
 **Contents:** [Features](#features) · [Requirements](#requirements-and-supported-devices) · [Install](#install-step-by-step) · [Usage](#usage) · [Privacy](#privacy) · [FAQ](#faq) · [Troubleshooting](#troubleshooting) · [Build from source](#build-from-source)
 
 ---
