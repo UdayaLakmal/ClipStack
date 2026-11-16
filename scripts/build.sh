@@ -42,7 +42,9 @@ build() {
     Resources/Info.plist > "$APP/Contents/Info.plist"
   cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 
-  codesign --force --sign - "$APP" >/dev/null
+  # Ad-hoc signing by default. macOS ties Accessibility permission to the exact build, so it must be
+  # re-granted after each rebuild. Set CODESIGN_IDENTITY to a certificate name to keep it across builds.
+  codesign --force --sign "${CODESIGN_IDENTITY:--}" "$APP" >/dev/null
   echo "Built $APP (v$VERSION, build $BUILD_NUMBER)"
 }
 

@@ -4,6 +4,11 @@
 import Cocoa
 import Carbon.HIToolbox
 import ServiceManagement
+import os
+
+/// Diagnostics. View with: log stream --predicate 'subsystem == "io.github.udayalakmal.clipstack"'
+/// Never logs clipboard contents.
+let log = Logger(subsystem: "io.github.udayalakmal.clipstack", category: "app")
 
 // MARK: - Model & storage
 
@@ -237,7 +242,12 @@ final class PickerController: NSObject, NSTableViewDataSource, NSTableViewDelega
         return rep
     }
 
+    /// The app that was in front when the picker opened; that's where we paste.
+    private(set) var targetApp: NSRunningApplication?
+
     func show() {
+        let front = NSWorkspace.shared.frontmostApplication
+        targetApp = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
         search.stringValue = ""
         reload()
         let mouse = NSEvent.mouseLocation
@@ -267,7 +277,21 @@ final class PickerController: NSObject, NSTableViewDataSource, NSTableViewDelega
         onPick?(item)
     }
 
-    @objc private func pickClicked() { pick(row: table.clickedRow) }
+    /// Double-click: the table calls this while the second click is still being tracked, so
+    /// finish the click first and wait until the mouse button is released before pasting.
+    @objc private func pickClicked() {
+        let row = table.clickedRow
+        guard rows.indices.contains(row) else { return }
+        log.info("double-click on row \(row, privacy: .public)")
+        DispatchQueue.main.async { self.waitForMouseUp { self.pick(row: row) } }
+    }
+
+    private func waitForMouseUp(tries: Int = 50, then action: @escaping () -> Void) {
+        if NSEvent.pressedMouseButtons == 0 || tries == 0 { action(); return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+            self.waitForMouseUp(tries: tries - 1, then: action)
+        }
+    }
 
     @objc private func togglePinClicked() {
         guard rows.indices.contains(table.clickedRow) else { return }
@@ -321,7 +345,10 @@ final class PickerController: NSObject, NSTableViewDataSource, NSTableViewDelega
 
 // MARK: - App
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    private var permissionItem: NSMenuItem!
+    private var statusMenu: NSMenu!
+    private var warnedAboutPermission = false
     private let store = HistoryStore()
     private let monitor = ClipboardMonitor()
     private var picker: PickerController!
@@ -349,15 +376,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         loginItem = menu.addItem(withTitle: "Launch at Login", action: #selector(toggleLogin), keyEquivalent: "")
         loginItem.target = self
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        menu.addItem(withTitle: "Grant Paste Permission…", action: #selector(askAccessibility), keyEquivalent: "").target = self
+        permissionItem = menu.addItem(withTitle: "", action: #selector(showPermissionHelp), keyEquivalent: "")
+        permissionItem.target = self
         menu.addItem(withTitle: "Clear History (keeps pinned)", action: #selector(clearHistory), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "About ClipStack", action: #selector(showAbout), keyEquivalent: "").target = self
         menu.addItem(withTitle: "ClipStack on GitHub", action: #selector(openGitHub), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Quit ClipStack", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.delegate = self
         statusItem.menu = menu
+        statusMenu = menu
+        refreshPermissionItem()
 
         if !AXIsProcessTrusted() { askAccessibility() }
+    }
+
+    // Keep the menu accurate every time it opens.
+    func menuWillOpen(_ menu: NSMenu) {
+        refreshPermissionItem()
+        loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+    }
+
+    /// Opening ClipStack again (Launchpad, Spotlight, Finder) while it's running shows its menu
+    /// at the mouse pointer, so it's reachable even when the menu bar icon is hidden by the notch.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.async {
+            self.statusMenu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+        }
+        return false
+    }
+
+    private func refreshPermissionItem() {
+        let ok = AXIsProcessTrusted()
+        permissionItem.title = ok ? "Auto-paste: On" : "Auto-paste: Off — Fix…"
+        permissionItem.state = ok ? .on : .off
+    }
+
+    private static let accessibilitySettingsURL =
+        URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+
+    /// Explains why pasting is off and how to fix it, including the stale-entry case.
+    @objc private func showPermissionHelp() {
+        if AXIsProcessTrusted() {
+            NSWorkspace.shared.open(Self.accessibilitySettingsURL)
+            return
+        }
+        askAccessibility() // registers ClipStack in the list if it isn't there yet
+        let alert = NSAlert()
+        alert.messageText = "ClipStack can copy, but can't paste for you yet"
+        alert.informativeText = """
+        To paste automatically, ClipStack needs Accessibility access.
+
+        1. Open System Settings → Privacy & Security → Accessibility.
+        2. If ClipStack is already listed (even if switched on), select it and click “–” to remove it. \
+        An entry from an older version no longer matches this one.
+        3. Click “+”, choose ClipStack in Applications, and switch it on.
+
+        Until then, picking an item copies it and you can press ⌘V yourself.
+        """
+        alert.addButton(withTitle: "Open Accessibility Settings")
+        alert.addButton(withTitle: "Later")
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            NSWorkspace.shared.open(Self.accessibilitySettingsURL)
+        }
     }
 
     @objc private func showPicker() { picker.show() }
@@ -394,9 +477,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.setString(item.text, forType: .string)
-        guard AXIsProcessTrusted() else { return } // without permission it's just copied
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            let src = CGEventSource(stateID: .combinedSessionState)
+        let trusted = AXIsProcessTrusted()
+        let target = picker.targetApp
+        log.info("paste: trusted=\(trusted, privacy: .public) target=\(target?.bundleIdentifier ?? "none", privacy: .public)")
+        guard trusted else {
+            // Copied only. Explain once per launch instead of failing silently.
+            if !warnedAboutPermission {
+                warnedAboutPermission = true
+                DispatchQueue.main.async { self.showPermissionHelp() }
+            }
+            return
+        }
+        // Make sure keyboard focus is back in the app we're pasting into. After a mouse click
+        // on the picker it may not return there on its own.
+        if let target, !target.isActive { target.activate(options: []) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none"
+            log.info("sending ⌘V, frontmost=\(front, privacy: .public)")
+            // A private source ignores keys the user may still be holding (e.g. ⌃ from ⌃⌘V),
+            // so the target app receives exactly ⌘V.
+            let src = CGEventSource(stateID: .privateState)
             let key = CGKeyCode(kVK_ANSI_V)
             let down = CGEvent(keyboardEventSource: src, virtualKey: key, keyDown: true)
             let up = CGEvent(keyboardEventSource: src, virtualKey: key, keyDown: false)
