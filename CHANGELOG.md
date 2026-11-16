@@ -1,7 +1,18 @@
 # Changelog
 
-All notable changes to ClipStack are documented here.
+All notable changes to MacClipHistory (formerly ClipStack) are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/).
+
+## [1.1.0] - 2026-11-16
+
+### Changed
+- **ClipStack is now MacClipHistory.** New app name, download name and GitHub address. Old links redirect automatically.
+
+### Added
+- Your ClipStack history and pins are imported automatically the first time MacClipHistory starts. The old data is left untouched.
+
+### Upgrading from ClipStack
+Quit ClipStack and turn off its Launch at Login, install MacClipHistory, then allow MacClipHistory in **Accessibility** and turn on **Launch at Login** again.
 
 ## [1.0.1] - 2026-11-16
 
@@ -31,5 +42,6 @@ First public release.
 - Launch at Login toggle, About window, and a link to the GitHub project.
 - Universal binary for Apple Silicon and Intel, macOS 13 Ventura or later.
 
+[1.1.0]: https://github.com/UdayaLakmal/MacClipHistory/releases/tag/v1.1.0
 [1.0.1]: https://github.com/UdayaLakmal/ClipStack/releases/tag/v1.0.1
 [1.0.0]: https://github.com/UdayaLakmal/ClipStack/releases/tag/v1.0.0

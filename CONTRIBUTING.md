@@ -1,8 +1,8 @@
-# Contributing to ClipStack
+# Contributing to MacClipHistory
 
-Thanks for helping improve ClipStack! Bug reports, ideas and pull requests are all welcome.
+Thanks for helping improve MacClipHistory! Bug reports, ideas and pull requests are all welcome.
 
-- **Bugs and ideas:** [open an issue](https://github.com/UdayaLakmal/ClipStack/issues). For bugs, include your macOS version, Mac model, and steps to reproduce.
+- **Bugs and ideas:** [open an issue](https://github.com/UdayaLakmal/MacClipHistory/issues). For bugs, include your macOS version, Mac model, and steps to reproduce.
 - **Pull requests:** keep changes focused, test them on a real Mac, and describe what you changed and why.
 
 ## Building
@@ -10,18 +10,18 @@ Thanks for helping improve ClipStack! Bug reports, ideas and pull requests are a
 You need the Xcode Command Line Tools (`xcode-select --install`). Xcode itself is not required.
 
 ```bash
-git clone https://github.com/UdayaLakmal/ClipStack.git
-cd ClipStack
+git clone https://github.com/UdayaLakmal/MacClipHistory.git
+cd MacClipHistory
 scripts/build.sh install
 ```
 
-That builds a universal `ClipStack.app`, copies it to `~/Applications` and launches it.
+That builds a universal `MacClipHistory.app`, copies it to `~/Applications` and launches it.
 
 | Command | Result |
 |---|---|
-| `scripts/build.sh` | Builds `build/ClipStack.app` (universal) |
+| `scripts/build.sh` | Builds `build/MacClipHistory.app` (universal) |
 | `scripts/build.sh install` | Builds, installs to `~/Applications`, launches |
-| `scripts/build.sh release` | Builds and zips to `dist/ClipStack-<version>.zip` with a SHA-256 checksum |
+| `scripts/build.sh release` | Builds and zips to `dist/MacClipHistory-<version>.zip` with a SHA-256 checksum |
 | `scripts/build.sh screenshots` | Regenerates the images in `docs/images` from sample data |
 | `scripts/build.sh icon` | Regenerates `Resources/AppIcon.icns` from `scripts/make-icon.swift` |
 
@@ -51,15 +51,15 @@ Everything lives in [`Sources/main.swift`](Sources/main.swift):
           copy to NSPasteboard ──▶ refocus previous app ──▶ simulated ⌘V
 ```
 
-- **Clipboard watching**: macOS has no "clipboard changed" notification, so ClipStack checks `NSPasteboard.changeCount` a few times a second, which is cheap.
+- **Clipboard watching**: macOS has no "clipboard changed" notification, so MacClipHistory checks `NSPasteboard.changeCount` a few times a second, which is cheap.
 - **Shortcut**: registered with Carbon's `RegisterEventHotKey`, which works system-wide and needs no permission.
 - **Picker**: a non-activating `NSPanel`, so the app you were typing in stays in front.
 - **Paste**: a synthetic <kbd>⌘</kbd><kbd>V</kbd> via `CGEvent`, which is why Accessibility access is needed.
 
 ## Diagnostics
 
-ClipStack logs events (never clipboard contents) to the system log. Watch them with:
+MacClipHistory logs events (never clipboard contents) to the system log. Watch them with:
 
 ```bash
-log stream --predicate 'subsystem == "io.github.udayalakmal.clipstack"'
+log stream --predicate 'subsystem == "io.github.udayalakmal.maccliphistory"'
 ```

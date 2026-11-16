@@ -1,4 +1,4 @@
-// ClipStack — a tiny clipboard history manager for macOS (Maccy / Win+V style).
+// MacClipHistory — a tiny clipboard history manager for macOS (Maccy / Win+V style).
 // Press ⌃⌘V anywhere to open the history, type to filter, Enter to paste.
 
 import Cocoa
@@ -6,9 +6,9 @@ import Carbon.HIToolbox
 import ServiceManagement
 import os
 
-/// Diagnostics. View with: log stream --predicate 'subsystem == "io.github.udayalakmal.clipstack"'
+/// Diagnostics. View with: log stream --predicate 'subsystem == "io.github.udayalakmal.maccliphistory"'
 /// Never logs clipboard contents.
-let log = Logger(subsystem: "io.github.udayalakmal.clipstack", category: "app")
+let log = Logger(subsystem: "io.github.udayalakmal.maccliphistory", category: "app")
 
 // MARK: - Model & storage
 
@@ -30,11 +30,23 @@ final class HistoryStore {
     }
 
     init() {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("ClipStack", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let fm = FileManager.default
+        let support = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let dir = support.appendingPathComponent("MacClipHistory", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appendingPathComponent("history.json")
         fileURL = url
+        // The app was called ClipStack before 1.1.0. Bring that history (and pins) across once.
+        // It's copied, not moved, so the old folder stays untouched.
+        let legacy = support.appendingPathComponent("ClipStack/history.json")
+        if !fm.fileExists(atPath: url.path), fm.fileExists(atPath: legacy.path) {
+            do {
+                try fm.copyItem(at: legacy, to: url)
+                log.info("imported history from ClipStack")
+            } catch {
+                log.error("could not import ClipStack history: \(error.localizedDescription, privacy: .public)")
+            }
+        }
         if let data = try? Data(contentsOf: url),
            let saved = try? JSONDecoder().decode([ClipItem].self, from: data) {
             items = saved
@@ -369,7 +381,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "ClipStack")
+        statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "MacClipHistory")
         let menu = NSMenu()
         menu.addItem(withTitle: "Show History  (⌃⌘V)", action: #selector(showPicker), keyEquivalent: "").target = self
         menu.addItem(.separator())
@@ -380,9 +392,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         permissionItem.target = self
         menu.addItem(withTitle: "Clear History (keeps pinned)", action: #selector(clearHistory), keyEquivalent: "").target = self
         menu.addItem(.separator())
-        menu.addItem(withTitle: "About ClipStack", action: #selector(showAbout), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "ClipStack on GitHub", action: #selector(openGitHub), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "Quit ClipStack", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: "About MacClipHistory", action: #selector(showAbout), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "MacClipHistory on GitHub", action: #selector(openGitHub), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Quit MacClipHistory", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.delegate = self
         statusItem.menu = menu
         statusMenu = menu
@@ -397,7 +409,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
     }
 
-    /// Opening ClipStack again (Launchpad, Spotlight, Finder) while it's running shows its menu
+    /// Opening MacClipHistory again (Launchpad, Spotlight, Finder) while it's running shows its menu
     /// at the mouse pointer, so it's reachable even when the menu bar icon is hidden by the notch.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         NSApp.activate(ignoringOtherApps: true)
@@ -422,16 +434,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSWorkspace.shared.open(Self.accessibilitySettingsURL)
             return
         }
-        askAccessibility() // registers ClipStack in the list if it isn't there yet
+        askAccessibility() // registers MacClipHistory in the list if it isn't there yet
         let alert = NSAlert()
-        alert.messageText = "ClipStack can copy, but can't paste for you yet"
+        alert.messageText = "MacClipHistory can copy, but can't paste for you yet"
         alert.informativeText = """
-        To paste automatically, ClipStack needs Accessibility access.
+        To paste automatically, MacClipHistory needs Accessibility access.
 
         1. Open System Settings → Privacy & Security → Accessibility.
-        2. If ClipStack is already listed (even if switched on), select it and click “–” to remove it. \
+        2. If MacClipHistory is already listed (even if switched on), select it and click “–” to remove it. \
         An entry from an older version no longer matches this one.
-        3. Click “+”, choose ClipStack in Applications, and switch it on.
+        3. Click “+”, choose MacClipHistory in Applications, and switch it on.
 
         Until then, picking an item copies it and you can press ⌘V yourself.
         """
@@ -508,9 +520,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 }
 
-let repoURL = URL(string: "https://github.com/UdayaLakmal/ClipStack")!
+let repoURL = URL(string: "https://github.com/UdayaLakmal/MacClipHistory")!
 
-// `ClipStack --screenshot <dir>` renders README screenshots with sample data, then exits.
+// `MacClipHistory --screenshot <dir>` renders README screenshots with sample data, then exits.
 // It never touches your real clipboard history.
 if let i = CommandLine.arguments.firstIndex(of: "--screenshot"), i + 1 < CommandLine.arguments.count {
     _ = NSApplication.shared
@@ -518,7 +530,7 @@ if let i = CommandLine.arguments.firstIndex(of: "--screenshot"), i + 1 < Command
     let now = Date()
     let demo = HistoryStore(demo: [
         ClipItem(text: "git push origin main", date: now, pinned: true),
-        ClipItem(text: "https://github.com/UdayaLakmal/ClipStack", date: now),
+        ClipItem(text: "https://github.com/UdayaLakmal/MacClipHistory", date: now),
         ClipItem(text: "brew install swiftlint", date: now),
         ClipItem(text: "SELECT id, email FROM users WHERE created_at > now() - interval '7 days';", date: now),
         ClipItem(text: "Meeting moved to 3:30 PM — same Zoom link", date: now),

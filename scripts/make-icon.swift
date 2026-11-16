@@ -1,4 +1,4 @@
-// Draws the ClipStack app icon and writes a 1024×1024 PNG.
+// Draws the MacClipHistory app icon and writes a 1024×1024 PNG.
 // Usage: swift scripts/make-icon.swift <output.png>
 import Cocoa
 
