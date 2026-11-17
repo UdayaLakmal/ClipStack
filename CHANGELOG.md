@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 - Your ClipStack history and pins are imported automatically the first time MacClipHistory starts. The old data is left untouched.
+- Install with Homebrew: `brew install --cask udayalakmal/tap/maccliphistory`.
 
 ### Upgrading from ClipStack
 Quit ClipStack and turn off its Launch at Login, install MacClipHistory, then allow MacClipHistory in **Accessibility** and turn on **Launch at Login** again.

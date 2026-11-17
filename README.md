@@ -12,6 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/UdayaLakmal/MacClipHistory/releases/latest"><img src="https://img.shields.io/github/v/release/UdayaLakmal/MacClipHistory?label=download" alt="Download latest release"></a>
+  <a href="#option-a-homebrew-recommended"><img src="https://img.shields.io/badge/homebrew-udayalakmal%2Ftap-orange" alt="Install with Homebrew"></a>
   <img src="https://img.shields.io/badge/macOS-13%20Ventura%2B-blue" alt="macOS 13 Ventura or later">
   <img src="https://img.shields.io/badge/Apple%20Silicon%20%2B%20Intel-universal-lightgrey" alt="Universal binary for Apple Silicon and Intel">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
@@ -40,6 +41,7 @@ MacClipHistory is a free, open-source **clipboard manager for Mac** that remembe
 - **Respects password managers**: anything marked as concealed or transient (1Password, Bitwarden, KeePassXC and others) is never recorded.
 - **Remembers 300 items** across restarts. Duplicates move to the top instead of piling up.
 - **Launch at Login** so it's always ready.
+- **Easy install**: one Homebrew command, or a single download.
 - **Lightweight**: about 1 MB, no dependencies, no network access, no Dock icon.
 - **Universal**: native on Apple Silicon (M1, M2, M3, M4) and Intel Macs.
 
@@ -63,15 +65,29 @@ Tested on macOS 14 Sonoma with Apple Silicon. Reports from other versions are we
 
 ## Install (step by step)
 
-### 1. Download
+### Option A: Homebrew (recommended)
+
+If you use [Homebrew](https://brew.sh), one command installs it:
+
+```bash
+brew install --cask udayalakmal/tap/maccliphistory
+```
+
+Homebrew downloads the app, puts it in **Applications** and clears the first-launch warning for you. Then open **MacClipHistory** from Launchpad or Spotlight and continue with [Finish setup](#finish-setup).
+
+> Homebrew 7 asks you to trust third-party taps once. If you see *“Refusing to load cask … from untrusted tap”*, run `brew trust udayalakmal/tap` and try again.
+
+### Option B: Download manually
+
+#### 1. Download
 
 Download **`MacClipHistory-x.y.z.zip`** from the [latest release](https://github.com/UdayaLakmal/MacClipHistory/releases/latest).
 
-### 2. Move it to Applications
+#### 2. Move it to Applications
 
 Double-click the zip to unzip it, then drag **MacClipHistory.app** into your **Applications** folder.
 
-### 3. Open it the first time
+#### 3. Open it the first time
 
 MacClipHistory isn't notarized by Apple (that needs a paid developer account), so macOS blocks the first launch with a warning like *“Apple could not verify MacClipHistory is free of malware”*. This is expected. Use **one** of these:
 
@@ -82,9 +98,11 @@ MacClipHistory isn't notarized by Apple (that needs a paid developer account), s
   xattr -dr com.apple.quarantine /Applications/MacClipHistory.app
   ```
 
+### Finish setup
+
 A clipboard icon 📋 appears in the **menu bar** at the top of the screen. There's no window and no Dock icon; that's normal.
 
-### 4. Allow auto-paste (Accessibility permission)
+#### 4. Allow auto-paste (Accessibility permission)
 
 To press <kbd>⌘</kbd><kbd>V</kbd> for you, macOS requires Accessibility permission. MacClipHistory asks on first launch.
 
@@ -94,19 +112,25 @@ To press <kbd>⌘</kbd><kbd>V</kbd> for you, macOS requires Accessibility permis
 
 Without this permission MacClipHistory still works: choosing an item copies it, and you press <kbd>⌘</kbd><kbd>V</kbd> yourself.
 
-### 5. Start it automatically
+#### 5. Start it automatically
 
 Click the menu bar icon → **Launch at Login** so it shows a checkmark ✓. MacClipHistory now starts every time you log in.
 
-### 6. Try it
+#### 6. Try it
 
 Copy a few things, then press <kbd>⌃</kbd><kbd>⌘</kbd><kbd>V</kbd> in any text field. Pick an item and press <kbd>↩</kbd>.
 
 ### Updating to a new version
 
-1. Quit MacClipHistory (menu bar icon → **Quit MacClipHistory**).
-2. Replace the app in Applications with the new one, and do step 3 again if macOS warns you.
-3. **Re-grant Accessibility:** in **System Settings → Privacy & Security → Accessibility**, select MacClipHistory, click **–** to remove it, then add it again with **+**. macOS treats each new version as a different app, so the old entry no longer works even if it looks switched on.
+**With Homebrew:**
+
+```bash
+brew upgrade --cask maccliphistory
+```
+
+**Manually:** quit MacClipHistory (menu bar icon → **Quit MacClipHistory**), then replace the app in Applications with the new one.
+
+**Either way, re-grant Accessibility afterwards:** in **System Settings → Privacy & Security → Accessibility**, select MacClipHistory, click **–** to remove it, then add it again with **+**. macOS treats each new version as a different app, so the old entry no longer works even if it looks switched on.
 
 Your history and pins are kept.
 
@@ -115,14 +139,16 @@ Your history and pins are kept.
 MacClipHistory is the new name of ClipStack (1.0.x). Your history and pins are imported automatically the first time MacClipHistory starts.
 
 1. Click the ClipStack menu bar icon, untick **Launch at Login**, then **Quit ClipStack**.
-2. Install MacClipHistory with steps 1–6 above.
+2. Install MacClipHistory with Option A or B above, then [finish setup](#finish-setup).
 3. Delete **ClipStack.app**, and remove ClipStack from the Accessibility list.
 
 ### Uninstall
 
 1. Menu bar icon → untick **Launch at Login**, then **Quit MacClipHistory**.
-2. Delete **MacClipHistory.app** from Applications.
-3. Optional: delete your history folder `~/Library/Application Support/MacClipHistory`, and remove MacClipHistory from the Accessibility list.
+2. Remove the app:
+   - **Homebrew:** `brew uninstall --cask maccliphistory` (add `--zap` to also delete your clipboard history).
+   - **Manually:** delete **MacClipHistory.app** from Applications, and optionally your history folder `~/Library/Application Support/MacClipHistory`.
+3. Remove MacClipHistory from the Accessibility list.
 
 ## Usage
 
@@ -154,6 +180,9 @@ macOS only remembers the last thing you copied. Install MacClipHistory and press
 
 **Is there a Win+V (Windows clipboard history) for Mac?**
 Not built in. MacClipHistory gives you the same thing: one shortcut, a searchable list, and paste.
+
+**How do I install it with Homebrew?**
+Run `brew install --cask udayalakmal/tap/maccliphistory`. See [Option A](#option-a-homebrew-recommended).
 
 **Is MacClipHistory free?**
 Yes. It's free and open source under the MIT License.
@@ -205,7 +234,8 @@ Developer notes, customisation and architecture are in [CONTRIBUTING.md](CONTRIB
 - [ ] Settings window for shortcut and history size
 - [ ] Per-app ignore list
 - [ ] Paste as plain text modifier
-- [ ] Signed and notarized builds, Homebrew cask
+- [x] Homebrew install
+- [ ] Signed and notarized builds
 
 Ideas and pull requests are welcome. Please [open an issue](https://github.com/UdayaLakmal/MacClipHistory/issues).
 
